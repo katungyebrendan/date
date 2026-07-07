@@ -43,11 +43,11 @@ class SwipeService {
         .limit(50);
 
     final snapshot = await query.get();
-    final alreadySwiped = await _swipedUids(me.uid);
+    final excluded = await _excludedUids(me.uid);
 
     final candidates = snapshot.docs
         .map(AppUser.fromDoc)
-        .where((u) => u.uid != me.uid && !alreadySwiped.contains(u.uid))
+        .where((u) => u.uid != me.uid && !excluded.contains(u.uid))
         .toList();
 
     // Surface people who share more of the viewer's interests first, to
@@ -69,6 +69,24 @@ class SwipeService {
     return snapshot.docs.map((d) => d.id).toSet();
   }
 
+  /// Uids to hide from discovery/admirers: already-swiped, blocked by [uid],
+  /// or blocking [uid]. See `SafetyService` for the `blocks` subcollection
+  /// this reads from.
+  Future<Set<String>> _excludedUids(String uid) async {
+    final alreadySwiped = await _swipedUids(uid);
+    final iBlocked = await _users.doc(uid).collection('blocks').get();
+    final blockedMe = await _firestore
+        .collectionGroup('blocks')
+        .where('blockedUid', isEqualTo: uid)
+        .get();
+
+    return {
+      ...alreadySwiped,
+      ...iBlocked.docs.map((d) => d.id),
+      ...blockedMe.docs.map((d) => d.reference.parent.parent!.id),
+    };
+  }
+
   /// Users who liked [myUid] but haven't been swiped on back yet (the
   /// "Likes" tab). Uses a collection-group query across every user's
   /// `swipes` subcollection: each admirer's like is stored as
@@ -81,10 +99,10 @@ class SwipeService {
         .where('liked', isEqualTo: true)
         .get();
 
-    final alreadySwiped = await _swipedUids(myUid);
+    final excluded = await _excludedUids(myUid);
     final admirerUids = snapshot.docs
         .map((doc) => doc.reference.parent.parent!.id)
-        .where((uid) => uid != myUid && !alreadySwiped.contains(uid))
+        .where((uid) => uid != myUid && !excluded.contains(uid))
         .toSet();
     if (admirerUids.isEmpty) return [];
 

@@ -32,11 +32,37 @@ service cloud.firestore {
                       && request.resource.data.targetUid == targetUid;
         allow update, delete: if false; // write-once, immutable
       }
+
+      match /blocks/{blockedUid} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.auth.uid == uid
+                      && blockedUid != uid
+                      && request.resource.data.blockedUid == blockedUid;
+        allow update: if false;
+        allow delete: if isSignedIn() && request.auth.uid == uid; // unblock
+      }
     }
 
     // Required for collectionGroup('swipes') queries used by the Likes tab.
     match /{path=**}/swipes/{targetUid} {
       allow read: if isSignedIn();
+    }
+
+    // Required for collectionGroup('blocks') queries used to find users who
+    // have blocked the current user (excluded from discovery/matches).
+    match /{path=**}/blocks/{blockedUid} {
+      allow read: if isSignedIn();
+    }
+
+    // Safety reports. Write-only from the client: anyone signed in may file
+    // a report about another user, but reports are only ever read by
+    // moderators via the Firebase console/admin SDK, not the app itself.
+    match /reports/{reportId} {
+      allow read, update, delete: if false;
+      allow create: if isSignedIn()
+                    && request.resource.data.reporterUid == request.auth.uid
+                    && request.resource.data.reportedUid is string
+                    && request.resource.data.reportedUid != request.auth.uid;
     }
 
     // Reservation docs (doc id = normalized phone number) that make a
@@ -62,12 +88,22 @@ service cloud.firestore {
       allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
       allow delete: if false;
 
+      // True once the other participant in this match has blocked the
+      // sender, so a blocked user's messages are rejected server-side, not
+      // just hidden client-side.
+      function isBlockedBySender(senderUid) {
+        let participants = get(/databases/$(database)/documents/matches/$(matchId)).data.participants;
+        let other = participants[0] == senderUid ? participants[1] : participants[0];
+        return exists(/databases/$(database)/documents/users/$(other)/blocks/$(senderUid));
+      }
+
       match /messages/{messageId} {
         allow read: if isSignedIn()
                     && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.participants;
         allow create: if isSignedIn()
                       && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.participants
-                      && request.resource.data.senderId == request.auth.uid;
+                      && request.resource.data.senderId == request.auth.uid
+                      && !isBlockedBySender(request.auth.uid);
         allow update: if isSignedIn()
                       && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.participants
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']);

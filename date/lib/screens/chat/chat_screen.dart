@@ -7,6 +7,7 @@ import '../../providers/user_providers.dart';
 import '../../widgets/app_avatar.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/loading_view.dart';
+import '../../widgets/safety_menu_button.dart';
 import 'widgets/message_bubble.dart';
 import 'widgets/message_composer.dart';
 
@@ -58,6 +59,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Text(otherUser?.displayName.isNotEmpty == true ? otherUser!.displayName : 'Chat'),
           ],
         ),
+        actions: [
+          if (myUid != null && otherUid != null)
+            SafetyMenuButton(
+              myUid: myUid,
+              targetUid: otherUid,
+              targetName: otherUser?.displayName.isNotEmpty == true ? otherUser!.displayName : 'this user',
+              onBlocked: () => Navigator.of(context).pop(),
+            ),
+        ],
       ),
       body: Column(
         children: [

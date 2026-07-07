@@ -8,6 +8,7 @@ import '../models/app_user.dart';
 import '../providers/user_providers.dart';
 import '../routing/route_paths.dart';
 import '../utils/age_calculator.dart';
+import 'safety_menu_button.dart';
 
 /// The profile card shown on Discover, Matches and Likes: circular photo,
 /// name/age, call/WhatsApp/chat actions and view/like counters. Bumps
@@ -82,34 +83,54 @@ class _PersonCardState extends ConsumerState<PersonCard> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            GestureDetector(
-              onTap: () => context.push(RoutePaths.viewProfilePath(person.uid)),
-              child: Container(
-                width: 176,
-                height: 176,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [colorScheme.primary, colorScheme.primary.withValues(alpha: 0.4)],
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                GestureDetector(
+                  onTap: () => context.push(RoutePaths.viewProfilePath(person.uid)),
+                  child: Container(
+                    width: 176,
+                    height: 176,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [colorScheme.primary, colorScheme.primary.withValues(alpha: 0.4)],
+                      ),
+                    ),
+                    child: ClipOval(
+                      child: photoUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: photoUrl,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Container(
+                                color: colorScheme.surfaceContainerHighest,
+                                child: Icon(Icons.person, size: 72, color: colorScheme.onSurfaceVariant),
+                              ),
+                            )
+                          : Container(
+                              color: colorScheme.surfaceContainerHighest,
+                              child: Icon(Icons.person, size: 72, color: colorScheme.onSurfaceVariant),
+                            ),
+                    ),
                   ),
                 ),
-                child: ClipOval(
-                  child: photoUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: photoUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) => Container(
-                            color: colorScheme.surfaceContainerHighest,
-                            child: Icon(Icons.person, size: 72, color: colorScheme.onSurfaceVariant),
-                          ),
-                        )
-                      : Container(
-                          color: colorScheme.surfaceContainerHighest,
-                          child: Icon(Icons.person, size: 72, color: colorScheme.onSurfaceVariant),
-                        ),
-                ),
-              ),
+                if (person.uid != widget.currentUid)
+                  Positioned(
+                    right: -8,
+                    top: -8,
+                    child: Material(
+                      color: colorScheme.surface,
+                      shape: const CircleBorder(),
+                      elevation: 2,
+                      child: SafetyMenuButton(
+                        myUid: widget.currentUid,
+                        targetUid: person.uid,
+                        targetName: person.displayName,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 12),
             Text(

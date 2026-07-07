@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../providers/auth_providers.dart';
 import '../../providers/theme_providers.dart';
 import '../../providers/user_providers.dart';
+import '../../routing/route_paths.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -64,6 +66,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: const Text('Dark mode'),
             value: isDarkMode,
             onChanged: (value) => ref.read(themeModeProvider.notifier).setDarkModeEnabled(value),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.block_outlined),
+            title: const Text('Blocked users'),
+            onTap: () => context.push(RoutePaths.blockedUsers),
           ),
           const Divider(),
           ListTile(

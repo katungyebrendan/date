@@ -5,6 +5,7 @@ import '../chat/chat_screen.dart';
 import '../discovery/discovery_screen.dart';
 import '../likes/likes_list_screen.dart';
 import '../matches/matches_list_screen.dart';
+import '../profile/blocked_users_screen.dart';
 import '../profile/edit_profile_screen.dart';
 import '../profile/profile_screen.dart';
 import '../profile/settings_screen.dart';
@@ -41,6 +42,10 @@ List<RouteBase> homeShellRoutes() {
     GoRoute(
       path: RoutePaths.settings,
       builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.blockedUsers,
+      builder: (context, state) => const BlockedUsersScreen(),
     ),
     GoRoute(
       path: RoutePaths.viewProfile,

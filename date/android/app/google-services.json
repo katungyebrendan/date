@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1071448106096",
+    "project_id": "velo-c4757",
+    "storage_bucket": "velo-c4757.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1071448106096:android:ccaffd36831f94b1d1c0b5",
+        "android_client_info": {
+          "package_name": "com.kats.velo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBy4AYhJVTeKXGTONQlUdIRmiHpnRujhY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

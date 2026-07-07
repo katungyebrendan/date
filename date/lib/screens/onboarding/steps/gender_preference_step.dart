@@ -30,12 +30,12 @@ class _GenderPreferenceStepState extends State<GenderPreferenceStep> {
       setState(() => _error = 'Please select your gender');
       return;
     }
-    if (_gender != Gender.man && _interestedIn.isEmpty) {
+    if (_gender != Gender.male && _interestedIn.isEmpty) {
       setState(() => _error = "Please select who you're interested in");
       return;
     }
     widget.draft.gender = _gender;
-    widget.draft.interestedIn = _gender == Gender.man ? {Gender.woman} : _interestedIn;
+    widget.draft.interestedIn = _gender == Gender.male ? {Gender.female} : _interestedIn;
     widget.onNext();
   }
 
@@ -44,7 +44,7 @@ class _GenderPreferenceStepState extends State<GenderPreferenceStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('I am a...', style: Theme.of(context).textTheme.headlineSmall),
+        Text('What is your gender?', style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -55,17 +55,17 @@ class _GenderPreferenceStepState extends State<GenderPreferenceStep> {
               onSelected: (_) {
                 setState(() {
                   _gender = g;
-                  if (g == Gender.man) {
+                  if (g == Gender.male) {
                     _interestedIn
                       ..clear()
-                      ..add(Gender.woman);
+                      ..add(Gender.female);
                   }
                 });
               },
             );
           }).toList(),
         ),
-        if (_gender != Gender.man) ...[
+        if (_gender != Gender.male) ...[
           const SizedBox(height: 28),
           Text('Interested in...', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 12),

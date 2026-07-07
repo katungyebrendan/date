@@ -1,23 +1,27 @@
-enum Gender { man, woman, nonBinary }
+enum Gender { male, female }
 
 extension GenderCodec on Gender {
   String get value => name;
 
   String get label {
     switch (this) {
-      case Gender.man:
-        return 'Man';
-      case Gender.woman:
-        return 'Woman';
-      case Gender.nonBinary:
-        return 'Non-binary';
+      case Gender.male:
+        return 'Male';
+      case Gender.female:
+        return 'Female';
     }
   }
 
   static Gender fromValue(String value) {
-    return Gender.values.firstWhere(
-      (g) => g.value == value,
-      orElse: () => Gender.nonBinary,
-    );
+    switch (value) {
+      case 'male':
+      case 'man':
+        return Gender.male;
+      case 'female':
+      case 'woman':
+        return Gender.female;
+      default:
+        return Gender.female;
+    }
   }
 }

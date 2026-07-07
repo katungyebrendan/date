@@ -62,12 +62,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       setState(() => _error = 'Please select your gender and who you are interested in.');
       return;
     }
-    if (_gender != Gender.man && _interestedIn.isEmpty) {
+    if (_gender != Gender.male && _interestedIn.isEmpty) {
       setState(() => _error = 'Please select who you are interested in.');
       return;
     }
 
-    final effectiveInterestedIn = _gender == Gender.man ? {Gender.woman} : _interestedIn;
+    final effectiveInterestedIn = _gender == Gender.male ? {Gender.female} : _interestedIn;
     if (_photoSlots.isEmpty) {
       setState(() => _error = 'Add a profile picture.');
       return;
@@ -173,17 +173,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         onSelected: (_) {
                           setState(() {
                             _gender = g;
-                            if (g == Gender.man) {
+                            if (g == Gender.male) {
                               _interestedIn
                                 ..clear()
-                                ..add(Gender.woman);
+                                ..add(Gender.female);
                             }
                           });
                         },
                       );
                     }).toList(),
                   ),
-                  if (_gender != Gender.man) ...[
+                  if (_gender != Gender.male) ...[
                     const SizedBox(height: 24),
                     Text('Interested in...', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),

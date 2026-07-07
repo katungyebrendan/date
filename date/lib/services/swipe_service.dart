@@ -24,8 +24,8 @@ class SwipeService {
   Future<List<AppUser>> fetchCandidates(AppUser me) async {
     if (me.gender == null) return [];
 
-    final interestedIn = me.gender == Gender.man && me.interestedIn.isEmpty
-        ? {Gender.woman}
+    final interestedIn = me.gender == Gender.male && me.interestedIn.isEmpty
+      ? {Gender.female}
         : me.interestedIn;
     if (interestedIn.isEmpty) return [];
 

@@ -48,7 +48,19 @@ then, the UI runs and navigates normally, but Firebase calls will fail.
    (`firestore.rules` and `storage.rules` at the repo root, wired up via
    `firebase.json`.)
 
-5. **Run the app**:
+5. **Optional one-time gender value migration** (`man/woman` -> `male/female`):
+  ```
+  cd scripts
+  npm install
+  set GOOGLE_APPLICATION_CREDENTIALS=C:\path\to\service-account.json
+  npm run migrate:genders
+  npm run migrate:genders -- --apply
+  ```
+  - First run is a dry run (no writes).
+  - `--apply` performs updates in the `users` collection for `gender` and
+    `interestedIn` values.
+
+6. **Run the app**:
    ```
    flutter pub get
    flutter run

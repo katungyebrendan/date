@@ -6,7 +6,6 @@ import '../../models/app_user.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/storage_providers.dart';
 import '../../providers/user_providers.dart';
-import '../../theme/app_theme.dart';
 import '../../widgets/error_view.dart';
 import 'onboarding_draft.dart';
 import 'steps/bio_step.dart';
@@ -143,14 +142,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         style: textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                           color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Share a few details and we will shape the experience around your vibe.',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          height: 1.4,
                         ),
                       ),
                       const SizedBox(height: 18),

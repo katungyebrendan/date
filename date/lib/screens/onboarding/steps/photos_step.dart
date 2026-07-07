@@ -7,7 +7,7 @@ import '../onboarding_draft.dart';
 class PhotosStep extends StatefulWidget {
   const PhotosStep({super.key, required this.draft, required this.onNext});
 
-  static const maxPhotos = 6;
+  static const maxPhotos = 1;
 
   final OnboardingDraft draft;
   final VoidCallback onNext;
@@ -37,7 +37,7 @@ class _PhotosStepState extends State<PhotosStep> {
 
   void _submit() {
     if (widget.draft.photos.isEmpty) {
-      setState(() => _error = 'Add at least one photo');
+      setState(() => _error = 'Add a profile picture');
       return;
     }
     widget.onNext();
@@ -48,58 +48,54 @@ class _PhotosStepState extends State<PhotosStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Add your photos', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 8),
-        Text(
-          'Your first photo will be your main profile picture',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        Text('Add your profile picture', style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-          ),
-          itemCount: PhotosStep.maxPhotos,
-          itemBuilder: (context, index) {
-            if (index < widget.draft.photos.length) {
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(widget.draft.photos[index], fit: BoxFit.cover),
-                  ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: GestureDetector(
-                      onTap: () => _removePhoto(index),
-                      child: const CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.black54,
-                        child: Icon(Icons.close, size: 14, color: Colors.white),
+        AspectRatio(
+          aspectRatio: 1,
+          child: widget.draft.photos.isNotEmpty
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.file(widget.draft.photos.first, fit: BoxFit.cover),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () => _removePhoto(0),
+                        child: const CircleAvatar(
+                          radius: 14,
+                          backgroundColor: Colors.black54,
+                          child: Icon(Icons.close, size: 16, color: Colors.white),
+                        ),
                       ),
                     ),
+                  ],
+                )
+              : InkWell(
+                  onTap: _addPhoto,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_a_photo_outlined, size: 36, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Add profile picture',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              );
-            }
-            return InkWell(
-              onTap: _addPhoto,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 ),
-                child: Icon(Icons.add_a_photo_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
-              ),
-            );
-          },
         ),
         if (_error != null) ...[
           const SizedBox(height: 12),

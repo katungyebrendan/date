@@ -34,6 +34,11 @@ service cloud.firestore {
       }
     }
 
+    // Required for collectionGroup('swipes') queries used by the Likes tab.
+    match /{path=**}/swipes/{targetUid} {
+      allow read: if isSignedIn();
+    }
+
     // Reservation docs (doc id = normalized phone number) that make a
     // WhatsApp number usable by only one account at a time.
     match /phoneNumbers/{phoneNumber} {

@@ -66,8 +66,8 @@ class HomeShell extends StatelessWidget {
         ),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.local_fire_department_outlined), label: 'Discover'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite_outline), label: 'Matches'),
-          BottomNavigationBarItem(icon: Icon(Icons.thumb_up_outlined), label: 'Likes'),
+          BottomNavigationBarItem(icon: Icon(Icons.volunteer_activism_outlined), label: 'Matches'),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: 'Likes'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),

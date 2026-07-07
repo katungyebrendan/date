@@ -44,7 +44,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _interestedIn = {...user.interestedIn};
     _interests = {...user.interests};
     _intent = user.intent;
-    _photoSlots = user.photoUrls.map<PhotoSlot>((u) => ExistingPhoto(u)).toList();
+    _photoSlots = user.photoUrls.take(1).map<PhotoSlot>((u) => ExistingPhoto(u)).toList();
     _initialized = true;
   }
 
@@ -58,8 +58,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   Future<void> _save(AppUser current) async {
     if (!_formKey.currentState!.validate()) return;
-    if (_gender == null || _interestedIn.isEmpty) {
+    if (_gender == null) {
       setState(() => _error = 'Please select your gender and who you are interested in.');
+      return;
+    }
+    if (_gender != Gender.man && _interestedIn.isEmpty) {
+      setState(() => _error = 'Please select who you are interested in.');
+      return;
+    }
+
+    final effectiveInterestedIn = _gender == Gender.man ? {Gender.woman} : _interestedIn;
+    if (_photoSlots.isEmpty) {
+      setState(() => _error = 'Add a profile picture.');
       return;
     }
 
@@ -71,11 +81,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     try {
       final storageService = ref.read(storageServiceProvider);
       final originalUrls = current.photoUrls.toSet();
-      final keptUrls = _photoSlots.whereType<ExistingPhoto>().map((p) => p.url).toSet();
+      final keptUrls = _photoSlots.take(1).whereType<ExistingPhoto>().map((p) => p.url).toSet();
       final removedUrls = originalUrls.difference(keptUrls);
 
       final finalUrls = <String>[];
-      for (final slot in _photoSlots) {
+      for (final slot in _photoSlots.take(1)) {
         switch (slot) {
           case ExistingPhoto(url: final url):
             finalUrls.add(url);
@@ -92,7 +102,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         'bio': _bioController.text.trim(),
         'city': _cityController.text.trim(),
         'gender': _gender!.value,
-        'interestedIn': _interestedIn.map((g) => g.value).toList(),
+        'interestedIn': effectiveInterestedIn.map((g) => g.value).toList(),
         'photoUrls': finalUrls,
         'interests': _interests.toList(),
         'intent': _intent?.value,
@@ -126,7 +136,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Photos', style: Theme.of(context).textTheme.titleMedium),
+                  Text('Profile picture', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
                   PhotoGridEditor(
                     initialUrls: user.photoUrls,
@@ -160,31 +170,42 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       return ChoiceChip(
                         label: Text(g.label),
                         selected: _gender == g,
-                        onSelected: (_) => setState(() => _gender = g),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-                  Text('Interested in...', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: Gender.values.map((g) {
-                      return FilterChip(
-                        label: Text(g.label),
-                        selected: _interestedIn.contains(g),
-                        onSelected: (selected) {
+                        onSelected: (_) {
                           setState(() {
-                            if (selected) {
-                              _interestedIn.add(g);
-                            } else {
-                              _interestedIn.remove(g);
+                            _gender = g;
+                            if (g == Gender.man) {
+                              _interestedIn
+                                ..clear()
+                                ..add(Gender.woman);
                             }
                           });
                         },
                       );
                     }).toList(),
                   ),
+                  if (_gender != Gender.man) ...[
+                    const SizedBox(height: 24),
+                    Text('Interested in...', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: Gender.values.map((g) {
+                        return FilterChip(
+                          label: Text(g.label),
+                          selected: _interestedIn.contains(g),
+                          onSelected: (selected) {
+                            setState(() {
+                              if (selected) {
+                                _interestedIn.add(g);
+                              } else {
+                                _interestedIn.remove(g);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   Text("Looking for...", style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),

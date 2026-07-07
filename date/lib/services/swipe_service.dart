@@ -22,7 +22,12 @@ class SwipeService {
   /// production version should push this to a Cloud Function or a search
   /// index (e.g. Algolia) instead.
   Future<List<AppUser>> fetchCandidates(AppUser me) async {
-    if (me.gender == null || me.interestedIn.isEmpty) return [];
+    if (me.gender == null) return [];
+
+    final interestedIn = me.gender == Gender.man && me.interestedIn.isEmpty
+        ? {Gender.woman}
+        : me.interestedIn;
+    if (interestedIn.isEmpty) return [];
 
     final (earliest, latest) = AgeCalculator.ageRangeToBirthdateRange(
       me.ageRangeMin,
@@ -31,7 +36,7 @@ class SwipeService {
 
     Query<Map<String, dynamic>> query = _users
         .where('interestedIn', arrayContains: me.gender!.value)
-        .where('gender', whereIn: me.interestedIn.map((g) => g.value).toList())
+      .where('gender', whereIn: interestedIn.map((g) => g.value).toList())
         .where('birthdate', isGreaterThanOrEqualTo: Timestamp.fromDate(earliest))
         .where('birthdate', isLessThanOrEqualTo: Timestamp.fromDate(latest))
         .where('onboardingComplete', isEqualTo: true)

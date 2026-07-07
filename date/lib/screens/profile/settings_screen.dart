@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/auth_providers.dart';
+import '../../providers/theme_providers.dart';
 import '../../providers/user_providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -51,10 +52,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          SwitchListTile(
+            secondary: const Icon(Icons.dark_mode_outlined),
+            title: const Text('Dark mode'),
+            value: isDarkMode,
+            onChanged: (value) => ref.read(themeModeProvider.notifier).setDarkModeEnabled(value),
+          ),
+          const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Sign out'),
@@ -65,7 +76,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             leading: Icon(Icons.delete_forever, color: Theme.of(context).colorScheme.error),
             title: Text('Delete account', style: TextStyle(color: Theme.of(context).colorScheme.error)),
             subtitle: const Text(
-              'Removes your profile and photos. Full account deletion requires re-authentication and is not yet supported.',
+              'Removes your profile and photos. This cannot be undone.',
             ),
             trailing: _deleting ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
             onTap: _deleting ? null : _confirmDeleteAccount,

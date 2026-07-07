@@ -9,8 +9,20 @@ class StorageService {
   Future<String> uploadPhoto(String uid, File file) async {
     final fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.uri.pathSegments.last}';
     final ref = _storage.ref('users/$uid/photos/$fileName');
-    final task = await ref.putFile(file);
+    final task = await ref.putFile(
+      file,
+      SettableMetadata(contentType: _contentTypeForFile(file)),
+    );
     return task.ref.getDownloadURL();
+  }
+
+  String _contentTypeForFile(File file) {
+    final path = file.path.toLowerCase();
+    if (path.endsWith('.png')) return 'image/png';
+    if (path.endsWith('.gif')) return 'image/gif';
+    if (path.endsWith('.webp')) return 'image/webp';
+    if (path.endsWith('.heic') || path.endsWith('.heif')) return 'image/heic';
+    return 'image/jpeg';
   }
 
   Future<void> deletePhoto(String uid, String url) async {

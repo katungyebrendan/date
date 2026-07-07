@@ -8,5 +8,10 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
+
+    // Block any storage path not explicitly allowed above.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
   }
 }

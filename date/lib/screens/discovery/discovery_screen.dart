@@ -38,17 +38,30 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     final liked = direction == CardSwiperDirection.right || direction == CardSwiperDirection.top;
     final superLike = direction == CardSwiperDirection.top;
 
-    final result = await ref.read(swipeServiceProvider).recordSwipe(
-          meUid: me.uid,
-          targetUid: target.uid,
-          liked: liked,
-          superLike: superLike,
-        );
+    try {
+      final result = await ref.read(swipeServiceProvider).recordSwipe(
+            meUid: me.uid,
+            targetUid: target.uid,
+            liked: liked,
+            superLike: superLike,
+          );
 
-    if (result.isMatch && mounted) {
-      await MatchCelebrationDialog.show(context, me: me, match: target);
+      if (result.isMatch && mounted) {
+        await MatchCelebrationDialog.show(context, me: me, match: target);
+      }
+      return true;
+    } catch (e) {
+      // Returning false tells CardSwiper to animate the card back into
+      // place instead of leaving it stuck off-screen — without this, an
+      // uncaught error here breaks the package's internal reset and the
+      // card just vanishes with no way to recover it.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Couldn't record that. Please try again.")),
+        );
+      }
+      return false;
     }
-    return true;
   }
 
   @override

@@ -13,6 +13,7 @@ class AppUser {
   final String bio;
   final List<String> photoUrls;
   final String city;
+  final GeoPoint? location;
   final int ageRangeMin;
   final int ageRangeMax;
   final bool onboardingComplete;
@@ -34,6 +35,7 @@ class AppUser {
     this.bio = '',
     this.photoUrls = const [],
     this.city = '',
+    this.location,
     this.ageRangeMin = 18,
     this.ageRangeMax = 55,
     this.onboardingComplete = false,
@@ -63,6 +65,7 @@ class AppUser {
       bio: map['bio'] as String? ?? '',
       photoUrls: List<String>.from((map['photoUrls'] as List?) ?? const []),
       city: map['city'] as String? ?? '',
+      location: map['location'] as GeoPoint?,
       ageRangeMin: (map['ageRangeMin'] as num?)?.toInt() ?? 18,
       ageRangeMax: (map['ageRangeMax'] as num?)?.toInt() ?? 55,
       onboardingComplete: map['onboardingComplete'] as bool? ?? false,
@@ -87,6 +90,7 @@ class AppUser {
       'birthdate': birthdate != null ? Timestamp.fromDate(birthdate!) : null,
       'gender': gender?.value,
       'city': city,
+      'location': location,
       'photoUrls': photoUrls,
       'interestedIn': interestedIn.map((g) => g.value).toList(),
       'onboardingComplete': onboardingComplete,
@@ -104,6 +108,7 @@ class AppUser {
       'bio': bio,
       'photoUrls': photoUrls,
       'city': city,
+      'location': location,
       'ageRangeMin': ageRangeMin,
       'ageRangeMax': ageRangeMax,
       'onboardingComplete': true,
@@ -121,6 +126,7 @@ class AppUser {
     String? bio,
     List<String>? photoUrls,
     String? city,
+    GeoPoint? location,
     int? ageRangeMin,
     int? ageRangeMax,
     bool? onboardingComplete,
@@ -138,6 +144,7 @@ class AppUser {
       bio: bio ?? this.bio,
       photoUrls: photoUrls ?? this.photoUrls,
       city: city ?? this.city,
+      location: location ?? this.location,
       ageRangeMin: ageRangeMin ?? this.ageRangeMin,
       ageRangeMax: ageRangeMax ?? this.ageRangeMax,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,

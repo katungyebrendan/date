@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../services/location_service.dart';
 import '../../../widgets/primary_button.dart';
 import '../onboarding_draft.dart';
@@ -17,29 +18,58 @@ class LocationStep extends StatefulWidget {
 class _LocationStepState extends State<LocationStep> {
   final _locationService = LocationService();
   late final _cityController = TextEditingController(text: widget.draft.city);
+  GeoPoint? _pickedGeoPoint;
+  String? _pickedCityKey;
   bool _locating = false;
   String? _error;
 
+  String _cityKey(String city) => city.trim().toLowerCase();
+
   Future<void> _useCurrentLocation() async {
     setState(() => _locating = true);
-    final city = await _locationService.currentCity();
+    final resolved = await _locationService.currentLocation();
     if (!mounted) return;
     setState(() {
       _locating = false;
-      if (city != null && city.isNotEmpty) {
-        _cityController.text = city;
+      if (resolved != null && resolved.city.isNotEmpty) {
+        _cityController.text = resolved.city;
+        _pickedGeoPoint = resolved.geoPoint;
+        _pickedCityKey = _cityKey(resolved.city);
+        _error = null;
       } else {
+        _pickedGeoPoint = null;
+        _pickedCityKey = null;
         _error = "Couldn't detect your location. Enter your city manually.";
       }
     });
   }
 
   Future<void> _submit() async {
-    if (_cityController.text.trim().isEmpty) {
+    final city = _cityController.text.trim();
+    if (city.isEmpty) {
       setState(() => _error = 'City is required');
       return;
     }
-    widget.draft.city = _cityController.text.trim();
+
+    setState(() {
+      _locating = true;
+      _error = null;
+    });
+
+    GeoPoint? location;
+    final cityKey = _cityKey(city);
+    if (_pickedGeoPoint != null && _pickedCityKey == cityKey) {
+      location = _pickedGeoPoint;
+    } else {
+      location = await _locationService.geoPointForCity(city);
+    }
+
+    if (!mounted) return;
+
+    widget.draft.city = city;
+    widget.draft.location = location;
+
+    setState(() => _locating = false);
     await widget.onFinish();
   }
 
@@ -67,7 +97,7 @@ class _LocationStepState extends State<LocationStep> {
           Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
         ],
         const SizedBox(height: 24),
-        PrimaryButton(label: 'Finish', onPressed: _submit, loading: widget.loading),
+        PrimaryButton(label: 'Finish', onPressed: _submit, loading: widget.loading || _locating),
       ],
     );
   }

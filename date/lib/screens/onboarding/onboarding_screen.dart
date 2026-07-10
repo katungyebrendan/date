@@ -59,6 +59,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         bio: _draft.bio,
         photoUrls: photoUrls,
         city: _draft.city,
+        location: _draft.location,
         interests: _draft.interests.toList(),
         intent: _draft.intent,
       );

@@ -50,6 +50,9 @@ dependencies:
   url_launcher: ^6.3.1
   shared_preferences: ^2.3.3
   flutter_local_notifications: ^17.2.3
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^7.0.1
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:

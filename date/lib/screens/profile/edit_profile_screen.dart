@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../models/app_user.dart';
@@ -8,6 +9,7 @@ import '../../models/interest.dart';
 import '../../models/relationship_intent.dart';
 import '../../providers/storage_providers.dart';
 import '../../providers/user_providers.dart';
+import '../../services/location_service.dart';
 import '../../utils/validators.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/loading_view.dart';
@@ -23,29 +25,59 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _locationService = LocationService();
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
   final _cityController = TextEditingController();
+  GeoPoint? _pickedGeoPoint;
+  String? _pickedCityKey;
   Gender? _gender;
   Set<Gender> _interestedIn = {};
   Set<String> _interests = {};
   RelationshipIntent? _intent;
   List<PhotoSlot> _photoSlots = [];
   bool _initialized = false;
+  bool _locating = false;
   bool _saving = false;
   String? _error;
+
+  String _cityKey(String city) => city.trim().toLowerCase();
 
   void _initFromUser(AppUser user) {
     if (_initialized) return;
     _nameController.text = user.displayName;
     _bioController.text = user.bio;
     _cityController.text = user.city;
+    _pickedGeoPoint = user.location;
+    _pickedCityKey = user.city.trim().isNotEmpty ? _cityKey(user.city) : null;
     _gender = user.gender;
     _interestedIn = {...user.interestedIn};
     _interests = {...user.interests};
     _intent = user.intent;
     _photoSlots = user.photoUrls.take(1).map<PhotoSlot>((u) => ExistingPhoto(u)).toList();
     _initialized = true;
+  }
+
+  Future<void> _useCurrentLocation() async {
+    setState(() {
+      _locating = true;
+      _error = null;
+    });
+
+    final resolved = await _locationService.currentLocation();
+    if (!mounted) return;
+
+    setState(() {
+      _locating = false;
+      if (resolved == null || resolved.city.isEmpty) {
+        _error = "Couldn't detect your location. Enter your city manually.";
+        return;
+      }
+
+      _cityController.text = resolved.city;
+      _pickedGeoPoint = resolved.geoPoint;
+      _pickedCityKey = _cityKey(resolved.city);
+    });
   }
 
   @override
@@ -97,10 +129,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         await storageService.deletePhoto(current.uid, url);
       }
 
+      final city = _cityController.text.trim();
+      GeoPoint? location;
+      if (city.isNotEmpty) {
+        final cityKey = _cityKey(city);
+        if (_pickedGeoPoint != null && _pickedCityKey == cityKey) {
+          location = _pickedGeoPoint;
+        } else {
+          location = await _locationService.geoPointForCity(city);
+        }
+      }
+
       await ref.read(userRepositoryProvider).updateProfile(current.uid, {
         'displayName': _nameController.text.trim(),
         'bio': _bioController.text.trim(),
-        'city': _cityController.text.trim(),
+        'city': city,
+        'location': location,
         'gender': _gender!.value,
         'interestedIn': effectiveInterestedIn.map((g) => g.value).toList(),
         'photoUrls': finalUrls,
@@ -160,6 +204,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   TextFormField(
                     controller: _cityController,
                     decoration: const InputDecoration(labelText: 'City'),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: (_saving || _locating) ? null : _useCurrentLocation,
+                    icon: _locating
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.my_location),
+                    label: const Text('Use my current location'),
                   ),
                   const SizedBox(height: 24),
                   Text('I am a...', style: Theme.of(context).textTheme.titleMedium),

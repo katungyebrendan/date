@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/app_user.dart';
 import '../models/gender.dart';
 import '../models/match.dart';
@@ -7,6 +8,8 @@ import '../utils/age_calculator.dart';
 
 class SwipeService {
   SwipeService(this._firestore);
+
+  static const _nearbyPriorityRadiusKm = 40.0;
 
   final FirebaseFirestore _firestore;
 
@@ -24,10 +27,7 @@ class SwipeService {
   Future<List<AppUser>> fetchCandidates(AppUser me) async {
     if (me.gender == null) return [];
 
-    final interestedIn = me.gender == Gender.male && me.interestedIn.isEmpty
-      ? {Gender.female}
-        : me.interestedIn;
-    if (interestedIn.isEmpty) return [];
+    final oppositeGender = me.gender == Gender.male ? Gender.female : Gender.male;
 
     final (earliest, latest) = AgeCalculator.ageRangeToBirthdateRange(
       me.ageRangeMin,
@@ -36,7 +36,7 @@ class SwipeService {
 
     Query<Map<String, dynamic>> query = _users
         .where('interestedIn', arrayContains: me.gender!.value)
-      .where('gender', whereIn: interestedIn.map((g) => g.value).toList())
+        .where('gender', isEqualTo: oppositeGender.value)
         .where('birthdate', isGreaterThanOrEqualTo: Timestamp.fromDate(earliest))
         .where('birthdate', isLessThanOrEqualTo: Timestamp.fromDate(latest))
         .where('onboardingComplete', isEqualTo: true)
@@ -44,24 +44,85 @@ class SwipeService {
 
     final snapshot = await query.get();
     final excluded = await _excludedUids(me.uid);
+    final meDoc = await _users.doc(me.uid).get();
+    final meGeoPoint = _extractGeoPoint(meDoc.data());
 
     final candidates = snapshot.docs
-        .map(AppUser.fromDoc)
-        .where((u) => u.uid != me.uid && !excluded.contains(u.uid))
+        .map((doc) {
+          final user = AppUser.fromDoc(doc);
+          final distanceKm = _distanceKmBetween(meGeoPoint, _extractGeoPoint(doc.data()));
+          return _RankedCandidate(user: user, distanceKm: distanceKm);
+        })
+        .where((entry) => entry.user.uid != me.uid && !excluded.contains(entry.user.uid))
         .toList();
 
-    // Surface people who share more of the viewer's interests first, to
-    // help find better matches; Firestore can't rank by array overlap
-    // itself since `interestedIn` already uses the query's one allowed
-    // array-contains filter.
+    // Prioritize nearby people first (<=40km), then shared interests,
+    // then shorter distance when both users have geolocation coordinates.
     final myInterests = me.interests.toSet();
     candidates.sort((a, b) {
-      final sharedA = a.interests.where(myInterests.contains).length;
-      final sharedB = b.interests.where(myInterests.contains).length;
-      return sharedB.compareTo(sharedA);
+      final aNearby = a.distanceKm != null && a.distanceKm! <= _nearbyPriorityRadiusKm;
+      final bNearby = b.distanceKm != null && b.distanceKm! <= _nearbyPriorityRadiusKm;
+      if (aNearby != bNearby) {
+        return bNearby ? 1 : -1;
+      }
+
+      final sharedA = a.user.interests.where(myInterests.contains).length;
+      final sharedB = b.user.interests.where(myInterests.contains).length;
+      if (sharedA != sharedB) {
+        return sharedB.compareTo(sharedA);
+      }
+
+      final aDistance = a.distanceKm;
+      final bDistance = b.distanceKm;
+      if (aDistance != null && bDistance != null) {
+        return aDistance.compareTo(bDistance);
+      }
+      if (aDistance != null) return -1;
+      if (bDistance != null) return 1;
+
+      final byLikeCount = b.user.likeCount.compareTo(a.user.likeCount);
+      if (byLikeCount != 0) return byLikeCount;
+      return a.user.uid.compareTo(b.user.uid);
     });
 
-    return candidates;
+    return candidates.map((entry) => entry.user).toList();
+  }
+
+  GeoPoint? _extractGeoPoint(Map<String, dynamic>? data) {
+    if (data == null) return null;
+
+    final directGeoPoint = data['location'] ?? data['geoPoint'] ?? data['coordinates'];
+    if (directGeoPoint is GeoPoint) return directGeoPoint;
+
+    if (directGeoPoint is Map<String, dynamic>) {
+      final lat = _asDouble(directGeoPoint['lat'] ?? directGeoPoint['latitude']);
+      final lng = _asDouble(directGeoPoint['lng'] ?? directGeoPoint['longitude']);
+      if (lat != null && lng != null) return GeoPoint(lat, lng);
+    }
+
+    final topLevelLat = _asDouble(data['lat'] ?? data['latitude']);
+    final topLevelLng = _asDouble(data['lng'] ?? data['longitude']);
+    if (topLevelLat != null && topLevelLng != null) {
+      return GeoPoint(topLevelLat, topLevelLng);
+    }
+
+    return null;
+  }
+
+  double? _distanceKmBetween(GeoPoint? from, GeoPoint? to) {
+    if (from == null || to == null) return null;
+    final distanceMeters = Geolocator.distanceBetween(
+      from.latitude,
+      from.longitude,
+      to.latitude,
+      to.longitude,
+    );
+    return distanceMeters / 1000;
+  }
+
+  double? _asDouble(Object? value) {
+    if (value is num) return value.toDouble();
+    return null;
   }
 
   Future<Set<String>> _swipedUids(String uid) async {
@@ -150,4 +211,11 @@ class SwipeService {
       return SwipeResult.noMatch();
     });
   }
+}
+
+class _RankedCandidate {
+  const _RankedCandidate({required this.user, required this.distanceKm});
+
+  final AppUser user;
+  final double? distanceKm;
 }

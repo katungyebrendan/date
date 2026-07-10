@@ -58,14 +58,7 @@ class _PersonCardState extends ConsumerState<PersonCard> {
   }
 
   void _chat() {
-    final matchId = widget.matchId;
-    if (matchId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Match with ${widget.person.displayName} to start chatting')),
-      );
-      return;
-    }
-    context.push(RoutePaths.chatThreadPath(matchId));
+    context.push(RoutePaths.chatThreadPath(widget.matchId!));
   }
 
   @override
@@ -177,11 +170,12 @@ class _PersonCardState extends ConsumerState<PersonCard> {
                   color: Colors.green,
                   onPressed: hasPhone ? _whatsapp : null,
                 ),
-                _CircleIconButton(
-                  icon: Icons.forum,
-                  color: colorScheme.secondary,
-                  onPressed: _chat,
-                ),
+                if (widget.matchId != null)
+                  _CircleIconButton(
+                    icon: Icons.forum,
+                    color: colorScheme.secondary,
+                    onPressed: _chat,
+                  ),
               ],
             ),
             const SizedBox(height: 10),

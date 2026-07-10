@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../models/app_user.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/user_providers.dart';
-import '../../routing/route_paths.dart';
 import '../../utils/phone_utils.dart';
 import '../../utils/validators.dart';
 import '../../widgets/primary_button.dart';
 import 'widgets/auth_text_field.dart';
 
-/// Creates the account and claims a unique WhatsApp number. Everything else
-/// (name, birthdate, gender, bio, interests, photos, location) is collected
-/// afterwards by [OnboardingScreen], which the router sends new accounts to.
+/// Shown right after a successful Google/Apple sign-in, once, for accounts
+/// that don't have a Firestore profile doc yet. Claims a unique WhatsApp
+/// number and creates that doc. Everything else (name, birthdate, gender,
+/// bio, interests, photos, location) is collected afterwards by
+/// [OnboardingScreen], which the router sends new accounts to next.
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
@@ -44,31 +44,35 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     final phoneNumber = normalizePhoneNumber(_phoneController.text);
     final authService = ref.read(authServiceProvider);
     final userRepository = ref.read(userRepositoryProvider);
+    final uid = authService.currentUid;
+
+    if (uid == null) {
+      setState(() => _errorMessage = 'Something went wrong. Please sign in again.');
+      setState(() => _loading = false);
+      return;
+    }
 
     try {
-      final credential = await authService.signUpAnonymous();
-      final uid = credential.user!.uid;
-
       final claimed = await userRepository.reservePhoneNumber(
         uid: uid,
         phoneNumber: phoneNumber,
       );
       if (!claimed) {
-        await authService.signOut();
         setState(() => _errorMessage = 'This WhatsApp number is already registered to another account.');
         return;
       }
 
       final newUser = AppUser.newAccount(uid: uid).copyWith(phoneNumber: phoneNumber);
       await userRepository.createUserDoc(newUser);
-
-      if (mounted) context.go(RoutePaths.onboarding);
+      // The router picks up the new profile doc and moves on to onboarding.
     } catch (e) {
       setState(() => _errorMessage = 'Something went wrong. Please try again.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  Future<void> _signOut() => ref.read(authServiceProvider).signOut();
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +87,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Create your account',
+                  "You're almost in",
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
@@ -113,8 +117,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () => context.go(RoutePaths.signIn),
-                  child: const Text('Already have an account? Sign in'),
+                  onPressed: _loading ? null : _signOut,
+                  child: const Text('Not you? Sign out and use a different account'),
                 ),
               ],
             ),

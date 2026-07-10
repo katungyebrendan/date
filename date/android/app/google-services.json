@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "1071448106096",
+    "firebase_url": "https://velo-c4757-default-rtdb.firebaseio.com",
     "project_id": "velo-c4757",
     "storage_bucket": "velo-c4757.firebasestorage.app"
   },
@@ -12,7 +13,20 @@
           "package_name": "com.kats.velo"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1071448106096-kslp06lvp0jbkq31scoo0iurieksungu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kats.velo",
+            "certificate_hash": "5c70846f5b51102334eeecfd422b524da2909447"
+          }
+        },
+        {
+          "client_id": "1071448106096-19ink4btt049vic270o7praj3ft08alc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDBy4AYhJVTeKXGTONQlUdIRmiHpnRujhY"
@@ -20,7 +34,20 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1071448106096-19ink4btt049vic270o7praj3ft08alc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1071448106096-t90fguoicmes5ldvujf47q6u8vgoenf1.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.kats.velo",
+                "app_store_id": "6772075002"
+              }
+            }
+          ]
         }
       }
     }

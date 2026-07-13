@@ -52,19 +52,64 @@ class AppUser {
   }
 
   factory AppUser.fromMap(String uid, Map<String, dynamic> map) {
+    final resolvedDisplayName = _firstNonEmptyString([
+      map['displayName'],
+      map['name'],
+      map['fullName'],
+      map['username'],
+    ]);
+    final resolvedPhoneNumber = _firstNonEmptyString([
+      map['phoneNumber'],
+      map['phone'],
+      map['mobile'],
+    ]);
+    final resolvedBio = _firstNonEmptyString([
+      map['bio'],
+      map['about'],
+      map['aboutMe'],
+      map['description'],
+    ]);
+    final resolvedCity = _firstNonEmptyString([
+      map['city'],
+      map['town'],
+      map['locationName'],
+      map['addressCity'],
+    ]);
+    final resolvedPhotoUrls = _stringListFromAny([
+      map['photoUrls'],
+      map['photos'],
+      map['images'],
+      map['gallery'],
+    ]);
+    final resolvedInterests = _stringListFromAny([
+      map['interests'],
+      map['hobbies'],
+      map['tags'],
+    ]);
+
+    final singlePhotoUrl = _firstNonEmptyString([
+      map['photoUrl'],
+      map['avatarUrl'],
+      map['imageUrl'],
+      map['profileImageUrl'],
+    ]);
+    if (singlePhotoUrl.isNotEmpty && !resolvedPhotoUrls.contains(singlePhotoUrl)) {
+      resolvedPhotoUrls.insert(0, singlePhotoUrl);
+    }
+
     return AppUser(
       uid: uid,
       email: map['email'] as String? ?? '',
-      displayName: map['displayName'] as String? ?? '',
-      phoneNumber: map['phoneNumber'] as String? ?? '',
+      displayName: resolvedDisplayName,
+      phoneNumber: resolvedPhoneNumber,
       birthdate: (map['birthdate'] as Timestamp?)?.toDate(),
       gender: map['gender'] != null ? GenderCodec.fromValue(map['gender'] as String) : null,
       interestedIn: ((map['interestedIn'] as List?) ?? const [])
           .map((v) => GenderCodec.fromValue(v as String))
           .toSet(),
-      bio: map['bio'] as String? ?? '',
-      photoUrls: List<String>.from((map['photoUrls'] as List?) ?? const []),
-      city: map['city'] as String? ?? '',
+      bio: resolvedBio,
+      photoUrls: resolvedPhotoUrls,
+      city: resolvedCity,
       location: map['location'] as GeoPoint?,
       ageRangeMin: (map['ageRangeMin'] as num?)?.toInt() ?? 18,
       ageRangeMax: (map['ageRangeMax'] as num?)?.toInt() ?? 55,
@@ -73,7 +118,7 @@ class AppUser {
       lastActive: (map['lastActive'] as Timestamp?)?.toDate(),
       viewCount: (map['viewCount'] as num?)?.toInt() ?? 0,
       likeCount: (map['likeCount'] as num?)?.toInt() ?? 0,
-      interests: List<String>.from((map['interests'] as List?) ?? const []),
+      interests: resolvedInterests,
       intent: map['intent'] != null ? RelationshipIntentCodec.fromValue(map['intent'] as String) : null,
     );
   }
@@ -155,5 +200,33 @@ class AppUser {
       interests: interests ?? this.interests,
       intent: intent ?? this.intent,
     );
+  }
+
+  static String _firstNonEmptyString(List<Object?> values) {
+    for (final value in values) {
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isNotEmpty) return trimmed;
+      }
+    }
+    return '';
+  }
+
+  static List<String> _stringListFromAny(List<Object?> values) {
+    for (final value in values) {
+      if (value is List) {
+        final result = value
+            .whereType<String>()
+            .map((entry) => entry.trim())
+            .where((entry) => entry.isNotEmpty)
+            .toList();
+        if (result.isNotEmpty) return result;
+      }
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isNotEmpty) return [trimmed];
+      }
+    }
+    return <String>[];
   }
 }

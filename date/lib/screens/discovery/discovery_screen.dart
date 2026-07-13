@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/app_user.dart';
@@ -7,9 +6,9 @@ import '../../providers/discovery_providers.dart';
 import '../../providers/user_providers.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/loading_view.dart';
+import '../../widgets/person_card.dart';
+import '../../widgets/profile_navigator_controls.dart';
 import 'widgets/match_celebration_dialog.dart';
-import 'widgets/swipe_action_buttons.dart';
-import 'widgets/swipe_card_stack.dart';
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
   const DiscoveryScreen({super.key});
@@ -19,48 +18,68 @@ class DiscoveryScreen extends ConsumerStatefulWidget {
 }
 
 class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
-  final _controller = CardSwiperController();
+  int _currentIndex = 0;
+  final Set<String> _decidedUids = <String>{};
+  bool _savingDecision = false;
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void _refreshDeck() {
+    if (mounted) {
+      setState(() {
+        _currentIndex = 0;
+        _decidedUids.clear();
+      });
+    }
+    ref.invalidate(candidatesProvider);
   }
 
-  Future<bool> _onSwipe(
-    int previousIndex,
-    int? currentIndex,
-    CardSwiperDirection direction,
-    AppUser me,
-    List<AppUser> candidates,
-  ) async {
-    final target = candidates[previousIndex];
-    final liked = direction == CardSwiperDirection.right || direction == CardSwiperDirection.top;
-    final superLike = direction == CardSwiperDirection.top;
+  void _goPrevious() {
+    if (_currentIndex <= 0) return;
+    setState(() => _currentIndex--);
+  }
+
+  void _goNext(int totalCount) {
+    if (_currentIndex >= totalCount - 1) return;
+    setState(() => _currentIndex++);
+  }
+
+  Future<void> _recordDecision({
+    required AppUser me,
+    required AppUser target,
+    required bool liked,
+    bool superLike = false,
+  }) async {
+    if (_savingDecision || _decidedUids.contains(target.uid)) return;
+
+    setState(() => _savingDecision = true);
 
     try {
-      final result = await ref.read(swipeServiceProvider).recordSwipe(
+      final result = await ref
+          .read(swipeServiceProvider)
+          .recordSwipe(
             meUid: me.uid,
             targetUid: target.uid,
             liked: liked,
             superLike: superLike,
           );
 
+      if (!mounted) return;
+      setState(() => _decidedUids.add(target.uid));
+
       if (result.isMatch && mounted) {
         await MatchCelebrationDialog.show(context, me: me, match: target);
       }
-      return true;
     } catch (e) {
-      // Returning false tells CardSwiper to animate the card back into
-      // place instead of leaving it stuck off-screen — without this, an
-      // uncaught error here breaks the package's internal reset and the
-      // card just vanishes with no way to recover it.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Couldn't record that. Please try again.")),
+          const SnackBar(
+            content: Text("Couldn't record that. Please try again."),
+          ),
         );
       }
-      return false;
+    } finally {
+      if (mounted) {
+        setState(() => _savingDecision = false);
+      }
     }
   }
 
@@ -81,14 +100,31 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
           data: (candidates) {
             final me = meAsync.valueOrNull;
             if (me == null) return const LoadingView();
+
             if (candidates.isEmpty) {
+              if (_currentIndex != 0) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  setState(() => _currentIndex = 0);
+                });
+              }
+              if (_decidedUids.isNotEmpty) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  setState(_decidedUids.clear);
+                });
+              }
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.search_off, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      Icon(
+                        Icons.search_off,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         'No one new nearby right now.\nCheck back later!',
@@ -106,25 +142,59 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               );
             }
 
+            final safeIndex = _currentIndex < candidates.length
+                ? _currentIndex
+                : candidates.length - 1;
+            if (safeIndex != _currentIndex) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                setState(() => _currentIndex = safeIndex);
+              });
+            }
+
+            final current = candidates[safeIndex];
+            final alreadyDecided = _decidedUids.contains(current.uid);
+
             return Column(
               children: [
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: SwipeCardStack(
-                      candidates: candidates,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: PersonCard(
+                      person: current,
                       currentUid: me.uid,
-                      controller: _controller,
-                      onSwipe: (previousIndex, currentIndex, direction) =>
-                          _onSwipe(previousIndex, currentIndex, direction, me, candidates),
-                      onEnd: () => ref.invalidate(candidatesProvider),
+                      onLike: (alreadyDecided || _savingDecision)
+                          ? null
+                          : () async {
+                              await _recordDecision(
+                                me: me,
+                                target: current,
+                                liked: true,
+                              );
+                              if (!mounted) return;
+                              _goNext(candidates.length);
+                            },
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  child: SwipeActionButtons(controller: _controller),
+                ProfileNavigatorControls(
+                  currentIndex: safeIndex,
+                  totalCount: candidates.length,
+                  onPrevious: safeIndex > 0 ? _goPrevious : null,
+                  onNext: safeIndex < candidates.length - 1
+                      ? () => _goNext(candidates.length)
+                      : null,
+                  onRefresh: _refreshDeck,
                 ),
+                const SizedBox(height: 18),
+                if (alreadyDecided)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      'Decision saved for this profile. Use arrows to browse.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
               ],
             );
           },

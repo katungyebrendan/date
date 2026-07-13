@@ -12,7 +12,7 @@ import 'safety_menu_button.dart';
 
 /// The profile card shown on Discover, Matches and Likes: circular photo,
 /// name/age, call/WhatsApp/chat actions and view/like counters. Bumps
-/// [person]'s view counter once per time it's shown.
+/// [person]'s view counter when the full profile is opened.
 class PersonCard extends ConsumerStatefulWidget {
   const PersonCard({
     super.key,
@@ -38,11 +38,34 @@ class PersonCard extends ConsumerStatefulWidget {
 }
 
 class _PersonCardState extends ConsumerState<PersonCard> {
+  late int _displayLikeCount;
+  late int _displayViewCount;
+  bool _likeHandledForCurrentProfile = false;
+  bool _viewHandledForCurrentProfile = false;
+
   @override
   void initState() {
     super.initState();
-    if (widget.person.uid != widget.currentUid) {
-      ref.read(userRepositoryProvider).incrementViewCount(widget.person.uid).ignore();
+    _displayLikeCount = widget.person.likeCount;
+    _displayViewCount = widget.person.viewCount;
+  }
+
+  @override
+  void didUpdateWidget(covariant PersonCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final profileChanged = oldWidget.person.uid != widget.person.uid;
+    final serverLikeCountChanged = oldWidget.person.likeCount != widget.person.likeCount;
+    final serverViewCountChanged = oldWidget.person.viewCount != widget.person.viewCount;
+    if (profileChanged || serverLikeCountChanged) {
+      _displayLikeCount = widget.person.likeCount;
+    }
+    if (profileChanged || serverViewCountChanged) {
+      _displayViewCount = widget.person.viewCount;
+    }
+    if (profileChanged) {
+      _likeHandledForCurrentProfile = false;
+      _viewHandledForCurrentProfile = false;
     }
   }
 
@@ -61,6 +84,30 @@ class _PersonCardState extends ConsumerState<PersonCard> {
     context.push(RoutePaths.chatThreadPath(widget.matchId!));
   }
 
+  Future<void> _openProfile() async {
+    if (widget.person.uid != widget.currentUid && !_viewHandledForCurrentProfile) {
+      setState(() {
+        _viewHandledForCurrentProfile = true;
+        _displayViewCount += 1;
+      });
+      ref.read(userRepositoryProvider).incrementViewCount(widget.person.uid).ignore();
+    }
+
+    await context.push(RoutePaths.viewProfilePath(widget.person.uid));
+  }
+
+  void _handleLikeTap() {
+    final onLike = widget.onLike;
+    if (onLike == null || _likeHandledForCurrentProfile) return;
+
+    setState(() {
+      _likeHandledForCurrentProfile = true;
+      _displayLikeCount += 1;
+    });
+
+    onLike();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -68,11 +115,28 @@ class _PersonCardState extends ConsumerState<PersonCard> {
     final photoUrl = person.photoUrls.isNotEmpty ? person.photoUrls.first : null;
     final age = person.birthdate != null ? AgeCalculator.ageFromBirthdate(person.birthdate!) : null;
     final hasPhone = person.phoneNumber.isNotEmpty;
+    final displayName = person.displayName.trim().isNotEmpty
+      ? person.displayName.trim()
+      : (person.email.isNotEmpty ? person.email.split('@').first : 'Member');
+    final displayCity = person.city.trim().isNotEmpty ? person.city.trim() : 'City not added yet';
+    final displayBio = person.bio.trim().isNotEmpty
+      ? person.bio.trim()
+      : 'This member has not added a bio yet.';
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -80,16 +144,25 @@ class _PersonCardState extends ConsumerState<PersonCard> {
               clipBehavior: Clip.none,
               children: [
                 GestureDetector(
-                  onTap: () => context.push(RoutePaths.viewProfilePath(person.uid)),
+                  onTap: _openProfile,
                   child: Container(
-                    width: 176,
-                    height: 176,
+                    width: 156,
+                    height: 156,
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [colorScheme.primary, colorScheme.primary.withValues(alpha: 0.4)],
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE91E63), Color(0xFFFF7A45)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFE91E63).withValues(alpha: 0.3),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
                     child: ClipOval(
                       child: photoUrl != null
@@ -98,20 +171,51 @@ class _PersonCardState extends ConsumerState<PersonCard> {
                               fit: BoxFit.cover,
                               errorWidget: (context, url, error) => Container(
                                 color: colorScheme.surfaceContainerHighest,
-                                child: Icon(Icons.person, size: 72, color: colorScheme.onSurfaceVariant),
+                                child: Icon(Icons.person, size: 64, color: colorScheme.onSurfaceVariant),
                               ),
                             )
                           : Container(
                               color: colorScheme.surfaceContainerHighest,
-                              child: Icon(Icons.person, size: 72, color: colorScheme.onSurfaceVariant),
+                              child: Icon(Icons.person, size: 64, color: colorScheme.onSurfaceVariant),
                             ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: -14,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.bolt, color: Colors.white, size: 14),
+                          SizedBox(width: 6),
+                          Text(
+                            'BOOST',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
                 if (person.uid != widget.currentUid)
                   Positioned(
-                    right: -8,
-                    top: -8,
+                    right: -4,
+                    top: -4,
                     child: Material(
                       color: colorScheme.surface,
                       shape: const CircleBorder(),
@@ -119,85 +223,142 @@ class _PersonCardState extends ConsumerState<PersonCard> {
                       child: SafetyMenuButton(
                         myUid: widget.currentUid,
                         targetUid: person.uid,
-                        targetName: person.displayName,
+                        targetName: displayName,
                       ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
             Text(
-              age != null ? '${person.displayName}, $age' : person.displayName,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              age != null ? '$displayName, $age' : displayName,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
-            if (hasPhone) ...[
-              const SizedBox(height: 10),
+            const SizedBox(height: 10),
+            if (hasPhone)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
+                  color: const Color(0xFFE8F7EF),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFBFE8CF)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.phone, size: 16, color: Colors.green),
-                    const SizedBox(width: 6),
+                    const Icon(Icons.call, size: 16, color: Color(0xFF22A060)),
+                    const SizedBox(width: 8),
                     Text(
                       'Call/WhatsApp: ${person.phoneNumber}',
-                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: Color(0xFF22A060), fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
+              )
+            else
+              Text(
+                displayCity,
+                style: TextStyle(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
               ),
-            ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _StatPill(
+                  icon: Icons.visibility_outlined,
+                  value: '$_displayViewCount',
+                  color: colorScheme.onSurfaceVariant,
+                  background: colorScheme.surfaceContainerHighest,
+                ),
+                const SizedBox(width: 10),
+                _StatPill(
+                  icon: Icons.favorite_border,
+                  value: '$_displayLikeCount',
+                  color: colorScheme.primary,
+                  background: colorScheme.primary.withValues(alpha: 0.08),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _CircleIconButton(
-                  icon: Icons.favorite,
-                  color: colorScheme.primary,
-                  onPressed: widget.onLike,
+                  icon: Icons.favorite_border,
+                  color: const Color(0xFFE53935),
+                  onPressed: _handleLikeTap,
                 ),
+                const SizedBox(width: 18),
                 _CircleIconButton(
                   icon: Icons.call,
-                  color: Colors.blue,
+                  color: const Color(0xFF1E88E5),
                   onPressed: hasPhone ? _call : null,
                 ),
+                const SizedBox(width: 18),
                 _CircleIconButton(
                   icon: Icons.chat,
-                  color: Colors.green,
+                  color: const Color(0xFF22A060),
                   onPressed: hasPhone ? _whatsapp : null,
                 ),
-                if (widget.matchId != null)
+                if (widget.matchId != null) ...[
+                  const SizedBox(width: 18),
                   _CircleIconButton(
                     icon: Icons.forum,
                     color: colorScheme.secondary,
                     onPressed: _chat,
                   ),
+                ],
               ],
             ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.visibility_outlined, size: 16, color: colorScheme.onSurfaceVariant),
-                const SizedBox(width: 4),
-                Text('${person.viewCount}', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-                const SizedBox(width: 16),
-                Icon(Icons.favorite, size: 16, color: colorScheme.primary),
-                const SizedBox(width: 4),
-                Text('${person.likeCount}', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-              ],
-            ),
-            const SizedBox(height: 6),
+            if (displayBio.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                displayBio,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
+              ),
+            ],
+            const SizedBox(height: 8),
             Text(
-              'Tap photo to view full profile',
-              style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
+              'Tap to view full profile',
+              style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StatPill extends StatelessWidget {
+  const _StatPill({
+    required this.icon,
+    required this.value,
+    required this.color,
+    required this.background,
+  });
+
+  final IconData icon;
+  final String value;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 17, color: color),
+          const SizedBox(width: 6),
+          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }
@@ -214,14 +375,15 @@ class _CircleIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
     return Material(
-      color: color.withValues(alpha: enabled ? 0.12 : 0.05),
+      color: Colors.white,
       shape: const CircleBorder(),
+      elevation: enabled ? 2 : 0,
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onPressed,
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Icon(icon, color: enabled ? color : color.withValues(alpha: 0.3), size: 22),
+          child: Icon(icon, color: enabled ? color : color.withValues(alpha: 0.3), size: 38),
         ),
       ),
     );

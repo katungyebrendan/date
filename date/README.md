@@ -66,6 +66,19 @@ then, the UI runs and navigates normally, but Firebase calls will fail.
    flutter run
    ```
 
+## iOS builds on Codemagic
+
+The repository includes a `ios-release` workflow in `codemagic.yaml`. Add the
+repository in Codemagic and create an App Store Connect API integration named
+`App Store Connect`. In Codemagic team settings, connect the Apple Developer
+account and make an App Store distribution certificate and provisioning profile
+available for bundle ID `com.kats.velo`; the workflow applies those profiles and
+produces a signed IPA as a build artifact. Apple credentials and signing assets
+must be configured in Codemagic and should not be committed to this repository.
+
+The workflow builds but does not upload to TestFlight or the App Store. Upload
+can be enabled later in the workflow's publishing settings.
+
 ## What's implemented
 
 - Email/password auth (sign up, sign in, sign out)

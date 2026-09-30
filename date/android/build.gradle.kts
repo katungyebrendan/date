@@ -19,6 +19,18 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// Work around AGP lint crashes in third-party Android library modules
+// (for example cloud_firestore) during release bundle builds.
+subprojects {
+    if (name != "app") {
+        tasks.matching {
+            it.name == "lintVitalAnalyzeRelease" || it.name == "lintVitalRelease"
+        }.configureEach {
+            enabled = false
+        }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

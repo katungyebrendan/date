@@ -55,8 +55,10 @@ class _PersonCardState extends ConsumerState<PersonCard> {
     super.didUpdateWidget(oldWidget);
 
     final profileChanged = oldWidget.person.uid != widget.person.uid;
-    final serverLikeCountChanged = oldWidget.person.likeCount != widget.person.likeCount;
-    final serverViewCountChanged = oldWidget.person.viewCount != widget.person.viewCount;
+    final serverLikeCountChanged =
+        oldWidget.person.likeCount != widget.person.likeCount;
+    final serverViewCountChanged =
+        oldWidget.person.viewCount != widget.person.viewCount;
     if (profileChanged || serverLikeCountChanged) {
       _displayLikeCount = widget.person.likeCount;
     }
@@ -85,12 +87,16 @@ class _PersonCardState extends ConsumerState<PersonCard> {
   }
 
   Future<void> _openProfile() async {
-    if (widget.person.uid != widget.currentUid && !_viewHandledForCurrentProfile) {
+    if (widget.person.uid != widget.currentUid &&
+        !_viewHandledForCurrentProfile) {
       setState(() {
         _viewHandledForCurrentProfile = true;
         _displayViewCount += 1;
       });
-      ref.read(userRepositoryProvider).incrementViewCount(widget.person.uid).ignore();
+      ref
+          .read(userRepositoryProvider)
+          .incrementViewCount(widget.person.uid)
+          .ignore();
     }
 
     await context.push(RoutePaths.viewProfilePath(widget.person.uid));
@@ -112,16 +118,22 @@ class _PersonCardState extends ConsumerState<PersonCard> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final person = widget.person;
-    final photoUrl = person.photoUrls.isNotEmpty ? person.photoUrls.first : null;
-    final age = person.birthdate != null ? AgeCalculator.ageFromBirthdate(person.birthdate!) : null;
+    final photoUrl = person.photoUrls.isNotEmpty
+        ? person.photoUrls.first
+        : null;
+    final age = person.birthdate != null
+        ? AgeCalculator.ageFromBirthdate(person.birthdate!)
+        : null;
     final hasPhone = person.phoneNumber.isNotEmpty;
     final displayName = person.displayName.trim().isNotEmpty
-      ? person.displayName.trim()
-      : (person.email.isNotEmpty ? person.email.split('@').first : 'Member');
-    final displayCity = person.city.trim().isNotEmpty ? person.city.trim() : 'City not added yet';
+        ? person.displayName.trim()
+        : (person.email.isNotEmpty ? person.email.split('@').first : 'Member');
+    final displayCity = person.city.trim().isNotEmpty
+        ? person.city.trim()
+        : 'City not added yet';
     final displayBio = person.bio.trim().isNotEmpty
-      ? person.bio.trim()
-      : 'This member has not added a bio yet.';
+        ? person.bio.trim()
+        : 'This member has not added a bio yet.';
 
     return Container(
       decoration: BoxDecoration(
@@ -171,12 +183,20 @@ class _PersonCardState extends ConsumerState<PersonCard> {
                               fit: BoxFit.cover,
                               errorWidget: (context, url, error) => Container(
                                 color: colorScheme.surfaceContainerHighest,
-                                child: Icon(Icons.person, size: 64, color: colorScheme.onSurfaceVariant),
+                                child: Icon(
+                                  Icons.person,
+                                  size: 64,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             )
                           : Container(
                               color: colorScheme.surfaceContainerHighest,
-                              child: Icon(Icons.person, size: 64, color: colorScheme.onSurfaceVariant),
+                              child: Icon(
+                                Icons.person,
+                                size: 64,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                     ),
                   ),
@@ -187,7 +207,10 @@ class _PersonCardState extends ConsumerState<PersonCard> {
                   right: 0,
                   child: Center(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         gradient: const LinearGradient(
@@ -232,12 +255,17 @@ class _PersonCardState extends ConsumerState<PersonCard> {
             const SizedBox(height: 24),
             Text(
               age != null ? '$displayName, $age' : displayName,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 10),
             if (hasPhone)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F7EF),
                   borderRadius: BorderRadius.circular(999),
@@ -250,7 +278,10 @@ class _PersonCardState extends ConsumerState<PersonCard> {
                     const SizedBox(width: 8),
                     Text(
                       'Call/WhatsApp: ${person.phoneNumber}',
-                      style: const TextStyle(color: Color(0xFF22A060), fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: Color(0xFF22A060),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -258,7 +289,10 @@ class _PersonCardState extends ConsumerState<PersonCard> {
             else
               Text(
                 displayCity,
-                style: TextStyle(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             const SizedBox(height: 16),
             Row(
@@ -280,34 +314,32 @@ class _PersonCardState extends ConsumerState<PersonCard> {
               ],
             ),
             const SizedBox(height: 18),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 18,
+              runSpacing: 10,
               children: [
                 _CircleIconButton(
                   icon: Icons.favorite_border,
                   color: const Color(0xFFE53935),
                   onPressed: _handleLikeTap,
                 ),
-                const SizedBox(width: 18),
                 _CircleIconButton(
                   icon: Icons.call,
                   color: const Color(0xFF1E88E5),
                   onPressed: hasPhone ? _call : null,
                 ),
-                const SizedBox(width: 18),
                 _CircleIconButton(
                   icon: Icons.chat,
                   color: const Color(0xFF22A060),
                   onPressed: hasPhone ? _whatsapp : null,
                 ),
-                if (widget.matchId != null) ...[
-                  const SizedBox(width: 18),
+                if (widget.matchId != null)
                   _CircleIconButton(
                     icon: Icons.forum,
                     color: colorScheme.secondary,
                     onPressed: _chat,
                   ),
-                ],
               ],
             ),
             if (displayBio.isNotEmpty) ...[
@@ -323,7 +355,11 @@ class _PersonCardState extends ConsumerState<PersonCard> {
             const SizedBox(height: 8),
             Text(
               'Tap to view full profile',
-              style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -357,7 +393,10 @@ class _StatPill extends StatelessWidget {
         children: [
           Icon(icon, size: 17, color: color),
           const SizedBox(width: 6),
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+          Text(
+            value,
+            style: TextStyle(color: color, fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );
@@ -365,7 +404,11 @@ class _StatPill extends StatelessWidget {
 }
 
 class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({required this.icon, required this.color, required this.onPressed});
+  const _CircleIconButton({
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+  });
 
   final IconData icon;
   final Color color;
@@ -383,7 +426,11 @@ class _CircleIconButton extends StatelessWidget {
         onTap: onPressed,
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Icon(icon, color: enabled ? color : color.withValues(alpha: 0.3), size: 38),
+          child: Icon(
+            icon,
+            color: enabled ? color : color.withValues(alpha: 0.3),
+            size: 38,
+          ),
         ),
       ),
     );

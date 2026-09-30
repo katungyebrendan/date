@@ -1,0 +1,75 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "cleanup-gradle-locks",
+			"type": "shell",
+			"command": "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'java.exe' -and $_.CommandLine -match 'org.gradle.launcher.daemon' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Get-ChildItem 'C:\\Users\\user\\.gradle\\caches' -Recurse -Filter *.lock -Force -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue; Write-Output 'cleaned'",
+			"isBackground": false
+		},
+		{
+			"label": "flutter-build-appbundle",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"build",
+				"appbundle"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "flutter-build-appbundle-project",
+			"type": "shell",
+			"command": "Set-Location \"c:\\Users\\user\\date\\date\"; flutter build appbundle",
+			"isBackground": false
+		},
+		{
+			"label": "gradle-lock-check",
+			"type": "shell",
+			"command": "Set-Location \"c:\\Users\\user\\date\\date\\android\"; .\\gradlew.bat help",
+			"isBackground": false
+		},
+		{
+			"label": "flutter-build-appbundle-project-2",
+			"type": "shell",
+			"command": "Set-Location \"c:\\Users\\user\\date\\date\"; flutter build appbundle",
+			"isBackground": false
+		},
+		{
+			"label": "clear-gradle-transform-cache",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force \"C:\\Users\\user\\.gradle\\caches\\8.12\\transforms\" -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force \"C:\\Users\\user\\.gradle\\caches\\transforms-*\" -ErrorAction SilentlyContinue; Write-Output \"transform-cache-cleared\"",
+			"isBackground": false
+		},
+		{
+			"label": "stop-gradle-and-clear-transforms",
+			"type": "shell",
+			"command": "Set-Location \"c:\\Users\\user\\date\\date\\android\"; .\\gradlew.bat --stop; Remove-Item -Recurse -Force \"C:\\Users\\user\\.gradle\\caches\\8.12\\transforms\" -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force \"C:\\Users\\user\\.gradle\\caches\\transforms-*\" -ErrorAction SilentlyContinue; Write-Output \"stopped-and-cleared\"",
+			"isBackground": false
+		},
+		{
+			"label": "force-delete-transforms-cmd",
+			"type": "shell",
+			"command": "cmd /c \"rd /s /q C:\\Users\\user\\.gradle\\caches\\8.12\\transforms\"",
+			"isBackground": false
+		},
+		{
+			"label": "kill-java-clear-transforms-build",
+			"type": "shell",
+			"command": "Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force \"C:\\Users\\user\\.gradle\\caches\\8.12\\transforms\" -ErrorAction SilentlyContinue; Set-Location \"c:\\Users\\user\\date\\date\"; flutter build appbundle",
+			"isBackground": false
+		},
+		{
+			"label": "full-gradle-8.12-cache-reset-build",
+			"type": "shell",
+			"command": "Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force \"C:\\Users\\user\\.gradle\\caches\\8.12\" -ErrorAction SilentlyContinue; Set-Location \"c:\\Users\\user\\date\\date\\android\"; .\\gradlew.bat --stop; Set-Location \"c:\\Users\\user\\date\\date\"; flutter build appbundle",
+			"isBackground": false
+		},
+		{
+			"label": "gradlew-bundle-release-stacktrace",
+			"type": "shell",
+			"command": "Set-Location \"c:\\Users\\user\\date\\date\\android\"; .\\gradlew.bat bundleRelease --stacktrace",
+			"isBackground": false
+		}
+	]
+}

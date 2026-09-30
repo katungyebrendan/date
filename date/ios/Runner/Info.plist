@@ -46,11 +46,8 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
-	<!-- Google Sign-In. TODO: enable Google as a sign-in provider for this
-	     Firebase project, re-download GoogleService-Info.plist, then replace
-	     both placeholders below with that file's CLIENT_ID / REVERSED_CLIENT_ID. -->
 	<key>GIDClientID</key>
-	<string>REPLACE_WITH_CLIENT_ID_FROM_GOOGLESERVICE_INFO_PLIST</string>
+	<string>1071448106096-t90fguoicmes5ldvujf47q6u8vgoenf1.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -58,7 +55,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>REPLACE_WITH_REVERSED_CLIENT_ID_FROM_GOOGLESERVICE_INFO_PLIST</string>
+				<string>com.googleusercontent.apps.1071448106096-t90fguoicmes5ldvujf47q6u8vgoenf1</string>
 			</array>
 		</dict>
 	</array>

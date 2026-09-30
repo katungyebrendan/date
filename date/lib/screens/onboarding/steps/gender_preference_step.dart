@@ -30,12 +30,12 @@ class _GenderPreferenceStepState extends State<GenderPreferenceStep> {
       setState(() => _error = 'Please select your gender');
       return;
     }
-    if (_interestedIn.isEmpty) {
+    if (_gender != Gender.male && _interestedIn.isEmpty) {
       setState(() => _error = "Please select who you're interested in");
       return;
     }
     widget.draft.gender = _gender;
-    widget.draft.interestedIn = _interestedIn;
+    widget.draft.interestedIn = _gender == Gender.male ? {Gender.female} : _interestedIn;
     widget.onNext();
   }
 
@@ -44,7 +44,7 @@ class _GenderPreferenceStepState extends State<GenderPreferenceStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('I am a...', style: Theme.of(context).textTheme.headlineSmall),
+        Text('What is your gender?', style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -52,31 +52,42 @@ class _GenderPreferenceStepState extends State<GenderPreferenceStep> {
             return ChoiceChip(
               label: Text(g.label),
               selected: _gender == g,
-              onSelected: (_) => setState(() => _gender = g),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 28),
-        Text('Interested in...', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children: Gender.values.map((g) {
-            return FilterChip(
-              label: Text(g.label),
-              selected: _interestedIn.contains(g),
-              onSelected: (selected) {
+              onSelected: (_) {
                 setState(() {
-                  if (selected) {
-                    _interestedIn.add(g);
-                  } else {
-                    _interestedIn.remove(g);
+                  _gender = g;
+                  if (g == Gender.male) {
+                    _interestedIn
+                      ..clear()
+                      ..add(Gender.female);
                   }
                 });
               },
             );
           }).toList(),
         ),
+        if (_gender != Gender.male) ...[
+          const SizedBox(height: 28),
+          Text('Interested in...', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: Gender.values.map((g) {
+              return FilterChip(
+                label: Text(g.label),
+                selected: _interestedIn.contains(g),
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _interestedIn.add(g);
+                    } else {
+                      _interestedIn.remove(g);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+        ],
         if (_error != null) ...[
           const SizedBox(height: 12),
           Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),

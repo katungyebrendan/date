@@ -40,8 +40,7 @@ String? appRedirect(Ref ref, GoRouterState state) {
 
   final firebaseUser = authState.valueOrNull;
   if (firebaseUser == null) {
-    if (path == RoutePaths.signIn || path == RoutePaths.signUp) return null;
-    return RoutePaths.signIn;
+    return path == RoutePaths.signIn ? null : RoutePaths.signIn;
   }
 
   final userState = ref.read(currentAppUserProvider);
@@ -49,8 +48,14 @@ String? appRedirect(Ref ref, GoRouterState state) {
     return path == RoutePaths.splash ? null : RoutePaths.splash;
   }
 
-  final onboarded = userState.valueOrNull?.onboardingComplete ?? false;
-  if (!onboarded) {
+  // Signed in with Google/Apple, but hasn't claimed a WhatsApp number yet
+  // (no Firestore profile doc exists) — that's what RoutePaths.signUp is now.
+  final appUser = userState.valueOrNull;
+  if (appUser == null) {
+    return path == RoutePaths.signUp ? null : RoutePaths.signUp;
+  }
+
+  if (!appUser.onboardingComplete) {
     return path == RoutePaths.onboarding ? null : RoutePaths.onboarding;
   }
 

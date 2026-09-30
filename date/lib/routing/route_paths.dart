@@ -14,6 +14,7 @@ class RoutePaths {
   static const profile = '/profile';
   static const editProfile = '/profile/edit';
   static const settings = '/profile/settings';
+  static const blockedUsers = '/profile/settings/blocked';
   static const viewProfile = '/profile/view/:uid';
 
   static String chatThreadPath(String matchId) => '/chat/$matchId';

@@ -48,11 +48,36 @@ then, the UI runs and navigates normally, but Firebase calls will fail.
    (`firestore.rules` and `storage.rules` at the repo root, wired up via
    `firebase.json`.)
 
-5. **Run the app**:
+5. **Optional one-time gender value migration** (`man/woman` -> `male/female`):
+  ```
+  cd scripts
+  npm install
+  set GOOGLE_APPLICATION_CREDENTIALS=C:\path\to\service-account.json
+  npm run migrate:genders
+  npm run migrate:genders -- --apply
+  ```
+  - First run is a dry run (no writes).
+  - `--apply` performs updates in the `users` collection for `gender` and
+    `interestedIn` values.
+
+6. **Run the app**:
    ```
    flutter pub get
    flutter run
    ```
+
+## iOS builds on Codemagic
+
+The repository includes a `ios-release` workflow in `codemagic.yaml`. Add the
+repository in Codemagic and create an App Store Connect API integration named
+`App Store Connect`. In Codemagic team settings, connect the Apple Developer
+account and make an App Store distribution certificate and provisioning profile
+available for bundle ID `com.kats.velo`; the workflow applies those profiles and
+produces a signed IPA as a build artifact. Apple credentials and signing assets
+must be configured in Codemagic and should not be committed to this repository.
+
+The workflow builds but does not upload to TestFlight or the App Store. Upload
+can be enabled later in the workflow's publishing settings.
 
 ## What's implemented
 

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../providers/auth_providers.dart';
+import '../../providers/theme_providers.dart';
 import '../../providers/user_providers.dart';
+import '../../routing/route_paths.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -12,7 +16,13 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  static final _privacyPolicyUri = Uri.parse('https://velo-c4757.web.app');
+
   bool _deleting = false;
+
+  Future<void> _openPrivacyPolicy() async {
+    await launchUrl(_privacyPolicyUri, mode: LaunchMode.externalApplication);
+  }
 
   Future<void> _signOut() async {
     await ref.read(authServiceProvider).signOut();
@@ -51,10 +61,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          SwitchListTile(
+            secondary: const Icon(Icons.dark_mode_outlined),
+            title: const Text('Dark mode'),
+            value: isDarkMode,
+            onChanged: (value) => ref.read(themeModeProvider.notifier).setDarkModeEnabled(value),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.block_outlined),
+            title: const Text('Blocked users'),
+            onTap: () => context.push(RoutePaths.blockedUsers),
+          ),
+          const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Sign out'),
@@ -65,17 +91,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             leading: Icon(Icons.delete_forever, color: Theme.of(context).colorScheme.error),
             title: Text('Delete account', style: TextStyle(color: Theme.of(context).colorScheme.error)),
             subtitle: const Text(
-              'Removes your profile and photos. Full account deletion requires re-authentication and is not yet supported.',
+              'Removes your profile and photos. This cannot be undone.',
             ),
             trailing: _deleting ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
             onTap: _deleting ? null : _confirmDeleteAccount,
           ),
           const Divider(),
-          const AboutListTile(
-            icon: Icon(Icons.info_outline),
-            applicationName: 'Velo',
-            applicationVersion: '1.0.0',
-            child: Text('About Velo'),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text('Privacy Policy'),
+            onTap: _openPrivacyPolicy,
           ),
         ],
       ),

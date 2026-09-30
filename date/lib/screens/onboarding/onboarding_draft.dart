@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/gender.dart';
 import '../../models/relationship_intent.dart';
 
@@ -12,6 +13,7 @@ class OnboardingDraft {
   String bio = '';
   final List<File> photos = [];
   String city = '';
+  GeoPoint? location;
   Set<String> interests = {};
   RelationshipIntent? intent;
 }

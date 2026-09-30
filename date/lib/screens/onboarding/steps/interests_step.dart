@@ -59,11 +59,6 @@ class _InterestsStepState extends State<InterestsStep> {
         ),
         const SizedBox(height: 28),
         Text('Your interests', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 4),
-        Text(
-          'Pick a few — we use these to find people you have things in common with.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,

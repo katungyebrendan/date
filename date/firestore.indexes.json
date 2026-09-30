@@ -1,0 +1,40 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "matches",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "participants", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "lastMessageAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "swipes",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "liked", "order": "ASCENDING" },
+        { "fieldPath": "targetUid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "interestedIn", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "gender", "order": "ASCENDING" },
+        { "fieldPath": "onboardingComplete", "order": "ASCENDING" },
+        { "fieldPath": "birthdate", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "blocks",
+      "fieldPath": "blockedUid",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
+}

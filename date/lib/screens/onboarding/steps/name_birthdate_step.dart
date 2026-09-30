@@ -69,11 +69,11 @@ class _NameBirthdateStepState extends State<NameBirthdateStep> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Name'),
+            decoration: const InputDecoration(labelText: 'eg john, jane'),
             validator: Validators.displayName,
           ),
           const SizedBox(height: 24),
-          Text('When were you born?', style: Theme.of(context).textTheme.headlineSmall),
+          Text('What is your date of birth?', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
           OutlinedButton(
             onPressed: _pickBirthdate,

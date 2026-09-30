@@ -5,6 +5,7 @@ import '../chat/chat_screen.dart';
 import '../discovery/discovery_screen.dart';
 import '../likes/likes_list_screen.dart';
 import '../matches/matches_list_screen.dart';
+import '../profile/blocked_users_screen.dart';
 import '../profile/edit_profile_screen.dart';
 import '../profile/profile_screen.dart';
 import '../profile/settings_screen.dart';
@@ -43,6 +44,10 @@ List<RouteBase> homeShellRoutes() {
       builder: (context, state) => const SettingsScreen(),
     ),
     GoRoute(
+      path: RoutePaths.blockedUsers,
+      builder: (context, state) => const BlockedUsersScreen(),
+    ),
+    GoRoute(
       path: RoutePaths.viewProfile,
       builder: (context, state) => ViewProfileScreen(uid: state.pathParameters['uid']!),
     ),
@@ -66,8 +71,8 @@ class HomeShell extends StatelessWidget {
         ),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.local_fire_department_outlined), label: 'Discover'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite_outline), label: 'Matches'),
-          BottomNavigationBarItem(icon: Icon(Icons.thumb_up_outlined), label: 'Likes'),
+          BottomNavigationBarItem(icon: Icon(Icons.volunteer_activism_outlined), label: 'Matches'),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: 'Likes'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),

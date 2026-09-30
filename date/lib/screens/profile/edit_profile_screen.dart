@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../models/app_user.dart';
@@ -8,6 +9,7 @@ import '../../models/interest.dart';
 import '../../models/relationship_intent.dart';
 import '../../providers/storage_providers.dart';
 import '../../providers/user_providers.dart';
+import '../../services/location_service.dart';
 import '../../utils/validators.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/loading_view.dart';
@@ -23,29 +25,59 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _locationService = LocationService();
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
   final _cityController = TextEditingController();
+  GeoPoint? _pickedGeoPoint;
+  String? _pickedCityKey;
   Gender? _gender;
   Set<Gender> _interestedIn = {};
   Set<String> _interests = {};
   RelationshipIntent? _intent;
   List<PhotoSlot> _photoSlots = [];
   bool _initialized = false;
+  bool _locating = false;
   bool _saving = false;
   String? _error;
+
+  String _cityKey(String city) => city.trim().toLowerCase();
 
   void _initFromUser(AppUser user) {
     if (_initialized) return;
     _nameController.text = user.displayName;
     _bioController.text = user.bio;
     _cityController.text = user.city;
+    _pickedGeoPoint = user.location;
+    _pickedCityKey = user.city.trim().isNotEmpty ? _cityKey(user.city) : null;
     _gender = user.gender;
     _interestedIn = {...user.interestedIn};
     _interests = {...user.interests};
     _intent = user.intent;
-    _photoSlots = user.photoUrls.map<PhotoSlot>((u) => ExistingPhoto(u)).toList();
+    _photoSlots = user.photoUrls.take(1).map<PhotoSlot>((u) => ExistingPhoto(u)).toList();
     _initialized = true;
+  }
+
+  Future<void> _useCurrentLocation() async {
+    setState(() {
+      _locating = true;
+      _error = null;
+    });
+
+    final resolved = await _locationService.currentLocation();
+    if (!mounted) return;
+
+    setState(() {
+      _locating = false;
+      if (resolved == null || resolved.city.isEmpty) {
+        _error = "Couldn't detect your location. Enter your city manually.";
+        return;
+      }
+
+      _cityController.text = resolved.city;
+      _pickedGeoPoint = resolved.geoPoint;
+      _pickedCityKey = _cityKey(resolved.city);
+    });
   }
 
   @override
@@ -58,8 +90,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   Future<void> _save(AppUser current) async {
     if (!_formKey.currentState!.validate()) return;
-    if (_gender == null || _interestedIn.isEmpty) {
+    if (_gender == null) {
       setState(() => _error = 'Please select your gender and who you are interested in.');
+      return;
+    }
+    if (_gender != Gender.male && _interestedIn.isEmpty) {
+      setState(() => _error = 'Please select who you are interested in.');
+      return;
+    }
+
+    final effectiveInterestedIn = _gender == Gender.male ? {Gender.female} : _interestedIn;
+    if (_photoSlots.isEmpty) {
+      setState(() => _error = 'Add a profile picture.');
       return;
     }
 
@@ -71,11 +113,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     try {
       final storageService = ref.read(storageServiceProvider);
       final originalUrls = current.photoUrls.toSet();
-      final keptUrls = _photoSlots.whereType<ExistingPhoto>().map((p) => p.url).toSet();
+      final keptUrls = _photoSlots.take(1).whereType<ExistingPhoto>().map((p) => p.url).toSet();
       final removedUrls = originalUrls.difference(keptUrls);
 
       final finalUrls = <String>[];
-      for (final slot in _photoSlots) {
+      for (final slot in _photoSlots.take(1)) {
         switch (slot) {
           case ExistingPhoto(url: final url):
             finalUrls.add(url);
@@ -87,12 +129,24 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         await storageService.deletePhoto(current.uid, url);
       }
 
+      final city = _cityController.text.trim();
+      GeoPoint? location;
+      if (city.isNotEmpty) {
+        final cityKey = _cityKey(city);
+        if (_pickedGeoPoint != null && _pickedCityKey == cityKey) {
+          location = _pickedGeoPoint;
+        } else {
+          location = await _locationService.geoPointForCity(city);
+        }
+      }
+
       await ref.read(userRepositoryProvider).updateProfile(current.uid, {
         'displayName': _nameController.text.trim(),
         'bio': _bioController.text.trim(),
-        'city': _cityController.text.trim(),
+        'city': city,
+        'location': location,
         'gender': _gender!.value,
-        'interestedIn': _interestedIn.map((g) => g.value).toList(),
+        'interestedIn': effectiveInterestedIn.map((g) => g.value).toList(),
         'photoUrls': finalUrls,
         'interests': _interests.toList(),
         'intent': _intent?.value,
@@ -126,7 +180,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Photos', style: Theme.of(context).textTheme.titleMedium),
+                  Text('Profile picture', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
                   PhotoGridEditor(
                     initialUrls: user.photoUrls,
@@ -151,6 +205,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     controller: _cityController,
                     decoration: const InputDecoration(labelText: 'City'),
                   ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: (_saving || _locating) ? null : _useCurrentLocation,
+                    icon: _locating
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.my_location),
+                    label: const Text('Use my current location'),
+                  ),
                   const SizedBox(height: 24),
                   Text('I am a...', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
@@ -160,31 +226,42 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       return ChoiceChip(
                         label: Text(g.label),
                         selected: _gender == g,
-                        onSelected: (_) => setState(() => _gender = g),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-                  Text('Interested in...', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: Gender.values.map((g) {
-                      return FilterChip(
-                        label: Text(g.label),
-                        selected: _interestedIn.contains(g),
-                        onSelected: (selected) {
+                        onSelected: (_) {
                           setState(() {
-                            if (selected) {
-                              _interestedIn.add(g);
-                            } else {
-                              _interestedIn.remove(g);
+                            _gender = g;
+                            if (g == Gender.male) {
+                              _interestedIn
+                                ..clear()
+                                ..add(Gender.female);
                             }
                           });
                         },
                       );
                     }).toList(),
                   ),
+                  if (_gender != Gender.male) ...[
+                    const SizedBox(height: 24),
+                    Text('Interested in...', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: Gender.values.map((g) {
+                        return FilterChip(
+                          label: Text(g.label),
+                          selected: _interestedIn.contains(g),
+                          onSelected: (selected) {
+                            setState(() {
+                              if (selected) {
+                                _interestedIn.add(g);
+                              } else {
+                                _interestedIn.remove(g);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   Text("Looking for...", style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
